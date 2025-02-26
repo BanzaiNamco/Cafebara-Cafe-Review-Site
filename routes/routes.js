@@ -56,5 +56,6 @@ router.put('/editReview', controller.editReview);
 router.put('/upvote', controller.upvote);
 router.put('/downvote', controller.downvote);
 
+router.post('/cafe/get/review', controller.getCafeReview);
 
 export default router;

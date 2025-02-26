@@ -1,4 +1,16 @@
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"></script>
+    <script src="../../scripts/hbs-init.js"></script>
     <script src = "../../scripts/cafe-rating.js"></script>
+    <script src = "../../scripts/lazy-loading.js"></script>
+
+
+<script>
+    var cafeName={{{json cafePage.cafeName}}};
+    if ({{{json cafePage.numReviews}}} == 0) {
+        var stopFetching = true;
+    }
+</script>
+
 <div class="content">
     {{> cafePage cafePage}}
 </div>
@@ -47,13 +59,9 @@
             <h2>REVIEWS</h2>
             <hr>
         </div>
-
-        <!-- Turn this into JS -->
-        {{#if reviews}}
-            {{#each reviews}}
-                {{>review this}}
-            {{/each}}
-        {{else}}
-            <h2>No reviews yet... start one yourself!</h2>
-        {{/if}}
+        <script>
+            if (stopFetching) {
+                document.querySelector(".content_review").innerHTML += "<h2>No reviews yet... start one yourself!</h2>";
+            }
+        </script>
     </div>

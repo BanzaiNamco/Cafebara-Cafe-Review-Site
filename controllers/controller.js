@@ -1,5 +1,5 @@
 import db from '../model/db.js';
-import {About} from '../model/aboutSchema.js';
+import { About } from '../model/aboutSchema.js';
 import { Cafe } from '../model/cafeSchema.js';
 import { Review } from '../model/reviewsSchema.js';
 import { User } from '../model/userSchema.js';
@@ -20,17 +20,17 @@ const upload = multer({ storage: storage });
 
 const controller = {
 
-    getIndex: async function(req, res) {
-        try{
-            if(req.isAuthenticated()){
-                if(req.user.type == 'cafe'){
+    getIndex: async function (req, res) {
+        try {
+            if (req.isAuthenticated()) {
+                if (req.user.type == 'cafe') {
                     res.redirect('/myprofile');
                     return
                 }
             }
             const cafeCarouselCards = [];
-            const resp = await Cafe.find().sort({dateCreated:-1}).limit(5)
-            for(let i = 0; i < resp.length; i++){
+            const resp = await Cafe.find().sort({ dateCreated: -1 }).limit(5)
+            for (let i = 0; i < resp.length; i++) {
                 cafeCarouselCards.push({
                     cafeName: resp[i].name,
                     cafePath: resp[i].image,
@@ -41,33 +41,33 @@ const controller = {
                 isIndex: true,
                 carouselCards: cafeCarouselCards,
                 session: req.isAuthenticated()
-           });
-        } catch{
-            res.sendStatus(400);   
-        }       
+            });
+        } catch {
+            res.sendStatus(400);
+        }
     },
 
-    getAbout: async function(req, res) {
+    getAbout: async function (req, res) {
 
-        try{
+        try {
             const profilecards = [];
             const result = await About.find();
 
             fs.readFile('package.json', 'utf8', (err, data) => {
 
                 if (err) {
-                  console.error('Error reading file:', err);
-                  return res.status(500).json({ error: 'Failed to read data.' });
+                    console.error('Error reading file:', err);
+                    return res.status(500).json({ error: 'Failed to read data.' });
                 }
-                
+
                 let jsonData = JSON.parse(data).dependencies;
 
                 // clean up the version number
                 for (let key in jsonData) jsonData[key] = `(${jsonData[key].substring(1)})`;
                 console.log(jsonData);
-            
 
-                for(let i = 0; i < result.length; i++){
+
+                for (let i = 0; i < result.length; i++) {
                     profilecards.push({
                         name: result[i].name,
                         position: result[i].position,
@@ -79,7 +79,7 @@ const controller = {
                         image: result[i].image
                     });
                 };
-                
+
                 res.render('about', {
                     isAbout: true,
                     profilecards: profilecards,
@@ -87,18 +87,18 @@ const controller = {
                     dependencies: jsonData
                 });
             });
-        }catch(e){
+        } catch (e) {
             console.log(e)
             res.sendStatus(400)
         }
     },
 
-    getCafes: async function(req, res) {
-       try{
+    getCafes: async function (req, res) {
+        try {
             const cafes = [];
             const resp = await Cafe.find()
-            for(let i = 0; i < resp.length; i++){
-                const result = await Review.find({cafeName: resp[i]._id});
+            for (let i = 0; i < resp.length; i++) {
+                const result = await Review.find({ cafeName: resp[i]._id });
                 cafes.push({
                     cafeName: resp[i].name,
                     numOfReviews: result.length,
@@ -116,79 +116,23 @@ const controller = {
                 session: req.isAuthenticated(),
                 isCafe: true
             });
-        }catch{
+        } catch {
             res.sendStatus(400)
         }
     },
-
-    cafe: async function(req, res){
-        try{
+    cafe: async function (req, res) {
+        try {
             const cafeName = req.params.cafeName;
-    
-            const cafe = await Cafe.findOne({name: cafeName}); 
-            const reviews = await Review.find({cafeName: cafe._id});
+            const cafe = await Cafe.findOne({ name: cafeName });
             const session = req.isAuthenticated();
-            const reviewList = [];
+            const reviews = await Review.find({ cafeName: cafe._id });
+
             let writebuttondisable = false;
             let userRating = 0;
             let userReview;
             let userReviewTitle;
             let userReviewId;
             let userReviewMedia;
-            for(let i = 0; i < reviews.length; i++){
-                const reply = await Reply.findOne({_id: reviews[i].ownerReply});
-
-                const reviewer = await User.findOne({_id: reviews[i].reviewer});
-                let author = false;
-                let upvoted = false;
-                let downvoted = false;
-                if(session){
-                    author = (reviewer.email == req.user.user.email) ? true: false;
-                    
-                    if(author){
-                        writebuttondisable = true;
-                        userRating = reviews[i].rating;
-                        userReview = reviews[i].review;
-                        userReviewTitle = reviews[i].review_title;
-                        userReviewId = reviews[i]._id;
-                        userReviewMedia = reviews[i].mediaPath;
-                    }
-
-                    if(req.user.user.upvotes.includes(reviews[i]._id)){
-                        upvoted = true;
-                    }
-                    else if(req.user.user.downvotes.includes(reviews[i]._id)){
-                        downvoted = true;
-                    }
-                }
-                    
-                let review = {
-                    review: reviews[i].review,
-                    reviewdate: reviews[i].dateCreated.toString().substring(0, 15),
-                    rating: reviews[i].rating,
-                    username: reviewer.firstname + " " + reviewer.lastname,
-                    dateModified: reviews[i].dateModified,
-                    up: reviews[i].upvotes,
-                    down: reviews[i].downvotes,
-                    media: reviews[i].mediaPath,
-                    profilepic: reviewer.profilepic,
-                    title: reviews[i].review_title,
-                    author: author,
-                    date: reviewer.dateCreated.toString().substring(11, 15),
-                    reviewId: reviews[i]._id,
-                    upvoted: upvoted,
-                    downvoted: downvoted,
-                    session: session
-                };
-                if(reviews[i].dateModified != null)
-                    review.editdate = reviews[i].dateModified.toString().substring(0, 15);
-                if (reply != null) {
-                    review.ownerreplydate = reply.date.toString().substring(0, 15);
-                    review.ownerreply = reply.reply_text;
-                }
-                reviewList.push(review);
-            }
-
             const cafeView = {
                 cafeName: cafe.name,
                 imgPath: cafe.image,
@@ -198,22 +142,16 @@ const controller = {
                 website: cafe.website,
                 phonenumber: cafe.phone,
                 price: cafe.price,
-                numReviews: reviewList.length,
+                numReviews: reviews.length,
                 menu: cafe.menu,
                 address: cafe.address,
                 cafe_id: cafe._id,
                 rating: cafe.rating
             };
 
-            //sort reviewList by upvotes
-            reviewList.sort(function(a, b){
-                return b.up/b.down - a.up/a.down;
-            });
-
             res.render("viewCafe", {
                 layout: 'cafeTemplate',
                 cafePage: cafeView,
-                reviews: reviewList,
                 session: session,
                 writeReview: writebuttondisable,
                 rating: userRating,
@@ -222,37 +160,104 @@ const controller = {
                 reviewId: userReviewId,
                 review_media: userReviewMedia
             });
-        }catch(err){
+        } catch (err) {
             console.log(err)
             res.sendStatus(400)
         }
- 
-     },
 
-     addReview: async function(req, res) {
-        try{
+    },
+
+    getCafeReview: async function (req, res) {
+        const cafeName = req.body.cafeName;
+        const i = req.body.reviewCount;
+
+        const cafe = await Cafe.findOne({ name: cafeName });
+        const reviews = await Review.findOne({ cafeName: cafe._id })
+            .sort({ rating: -1, _id: 1 })
+            .skip(i);
+        if (reviews == null) {
+            res.json({ reviews: [] });
+            return
+        }
+        const session = req.isAuthenticated();
+        const reviewList = [];
+        const reply = await Reply.findOne({ _id: reviews.ownerReply });
+        const reviewer = await User.findOne({ _id: reviews.reviewer });
+        let author = false;
+        let upvoted = false;
+        let downvoted = false;
+        if (session) {
+            author = (reviewer.email == req.user.user.email) ? true : false;
+
+            if (author) {
+                writebuttondisable = true;
+                userRating = reviews.rating;
+                userReview = reviews.review;
+                userReviewTitle = reviews.review_title;
+                userReviewId = reviews._id;
+                userReviewMedia = reviews.mediaPath;
+            }
+
+            if (req.user.user.upvotes.includes(reviews._id)) {
+                upvoted = true;
+            }
+            else if (req.user.user.downvotes.includes(reviews._id)) {
+                downvoted = true;
+            }
+        }
+
+        let review = {
+            review: reviews.review,
+            reviewdate: reviews.dateCreated.toString().substring(0, 15),
+            rating: reviews.rating,
+            username: reviewer.firstname + " " + reviewer.lastname,
+            dateModified: reviews.dateModified,
+            up: reviews.upvotes,
+            down: reviews.downvotes,
+            media: reviews.mediaPath,
+            profilepic: reviewer.profilepic,
+            title: reviews.review_title,
+            author: author,
+            date: reviewer.dateCreated.toString().substring(11, 15),
+            reviewId: reviews._id,
+            upvoted: upvoted,
+            downvoted: downvoted,
+            session: session
+        };
+        if (reviews.dateModified != null)
+            review.editdate = reviews.dateModified.toString().substring(0, 15);
+        if (reply != null) {
+            review.ownerreplydate = reply.date.toString().substring(0, 15);
+            review.ownerreply = reply.reply_text;
+        }
+        reviewList.push(review);
+        res.json({ reviews: reviewList });
+    },
+
+    addReview: async function (req, res) {
+        try {
             const cafeName = req.body.cafename;
             const review = req.body.body;
             const review_title = req.body.title;
             const rating = req.body.rating;
             const dateCreated = new Date()
             const email = req.user.user.email;
-            
+
             let img_path = req.files;
             const attached = [];
             console.log(img_path);
-            if(img_path === undefined){
+            if (img_path === undefined) {
                 attached = [];
-            }   
-            else{
-                for(let i=0; i < img_path.length; i++){
+            }
+            else {
+                for (let i = 0; i < img_path.length; i++) {
                     attached.push("../uploads/" + img_path[i].filename);
                 }
-            }   
+            }
 
-            const user = await User.findOne({email: email});
-                
-            const cafe = await Cafe.findOne({name: cafeName});
+            const user = await User.findOne({ email: email });
+
+            const cafe = await Cafe.findOne({ name: cafeName });
             const newDoc = {
                 cafeName: cafe._id,
                 reviewer: user._id,
@@ -268,34 +273,34 @@ const controller = {
 
             const newReview = new Review(newDoc);
             await newReview.save();
-            
 
-            if(cafe.rating === 0)
+
+            if (cafe.rating === 0)
                 cafe.rating = parseInt(rating);
             else
-                cafe.rating = (parseFloat(cafe.rating) + parseInt(rating))/2;
+                cafe.rating = (parseFloat(cafe.rating) + parseInt(rating)) / 2;
 
             await cafe.save();
 
             res.sendStatus(200)
-        } catch{
+        } catch {
             res.sendStatus(400)
         }
     },
 
     profile: async function (req, res) {
-        if(req.isAuthenticated()){
-            if(req.user.type == 'user'){
-                const userDetails = await User.findOne({_id: req.user.user._id});
-                const reviews = await Review.find({reviewer: req.user.user._id});
+        if (req.isAuthenticated()) {
+            if (req.user.type == 'user') {
+                const userDetails = await User.findOne({ _id: req.user.user._id });
+                const reviews = await Review.find({ reviewer: req.user.user._id });
                 const reviewList = [];
                 let five = 0;
                 let four = 0;
                 let three = 0;
                 let two = 0;
                 let one = 0;
-                for(let i = 0; i < reviews.length; i++){
-                    const cafe = await Cafe.findOne({_id: reviews[i].cafeName});
+                for (let i = 0; i < reviews.length; i++) {
+                    const cafe = await Cafe.findOne({ _id: reviews[i].cafeName });
                     reviewList.push({
                         cafe: cafe.name,
                         title: reviews[i].review_title,
@@ -303,7 +308,7 @@ const controller = {
                         reviewtext: reviews[i].review,
                         cafeimg: cafe.image,
                     })
-                    switch(reviewList[i].rating){
+                    switch (reviewList[i].rating) {
                         case 5:
                             five++; break;
                         case 4:
@@ -329,23 +334,23 @@ const controller = {
                     ichi: one,
                 }
 
-                res.render ('userProfile', {
-                    layout: 'profileTemplate', 
+                res.render('userProfile', {
+                    layout: 'profileTemplate',
                     userProfile: userdetails,
                     reviews: reviewList,
                     session: req.isAuthenticated(),
                     isProfile: true
                 });
             }
-            else if(req.user.type == 'cafe'){
+            else if (req.user.type == 'cafe') {
 
-                const cafe = await Cafe.findOne({_id: req.user.user._id});
-                const reviews = await Review.find({cafeName: req.user.user._id});
+                const cafe = await Cafe.findOne({ _id: req.user.user._id });
+                const reviews = await Review.find({ cafeName: req.user.user._id });
                 const reviewList = [];
                 let average = 0;
-                for(let i = 0; i < reviews.length; i++){
-                    const user = await User.findOne({_id: reviews[i].reviewer});
-                    const reply = await Reply.findOne({_id: reviews[i].ownerReply});
+                for (let i = 0; i < reviews.length; i++) {
+                    const user = await User.findOne({ _id: reviews[i].reviewer });
+                    const reply = await Reply.findOne({ _id: reviews[i].ownerReply });
                     reviewList.push({
                         reviewtext: reviews[i].review,
                         title: reviews[i].review_title,
@@ -357,7 +362,7 @@ const controller = {
                         userimg: user.profilepic,
                         reviewId: reviews[i]._id,
                     })
-                    if(reply != null){
+                    if (reply != null) {
                         reviewList[i].reply = reply.reply_text;
                         reviewList[i].reply_date = reply.date.toString().substring(0, 15);
                     }
@@ -372,7 +377,7 @@ const controller = {
                     numreviews: reviews.length,
                     rating: average
                 }
-                res.render ('cafeProfile', { //edit to correct one
+                res.render('cafeProfile', { //edit to correct one
                     layout: 'ownerTemplate',
                     ownerprofile: cafedetails,
                     reviews: reviewList,
@@ -381,58 +386,60 @@ const controller = {
                 });
             }
         }
-        else{
+        else {
             res.redirect('/');
         }
     },
 
-    updateProfile: async function(req, res) {
-        if(req.isAuthenticated()){
-            const user = await User.findOne({_id: req.user.user._id});
+    updateProfile: async function (req, res) {
+        if (req.isAuthenticated()) {
+            const user = await User.findOne({ _id: req.user.user._id });
             const updatedDetails = req.body;
-        
+
             let img_path = req.file;
             console.log(img_path);
-            if(img_path === undefined){
+            if (img_path === undefined) {
                 img_path = user.profilepic;
-            } 
-            else{
+            }
+            else {
                 img_path = "./uploads/" + req.file.filename;
-            }         
-            
-            
-            const userDetails = await User.updateOne({_id: req.user.user._id}, {$set: {
-                profilepic: img_path,
-                firstname: updatedDetails.firstname,
-                lastname: updatedDetails.lastname,
-                email: updatedDetails.email,
-                password: await bcrypt.hash(updatedDetails.password, 10),
-                birthday: new Date(updatedDetails.year, updatedDetails.month, updatedDetails.day),
-                bio: updatedDetails.bio,
-            }});
+            }
 
-            
-                
+
+            const userDetails = await User.updateOne({ _id: req.user.user._id }, {
+                $set: {
+                    profilepic: img_path,
+                    firstname: updatedDetails.firstname,
+                    lastname: updatedDetails.lastname,
+                    email: updatedDetails.email,
+                    password: await bcrypt.hash(updatedDetails.password, 10),
+                    birthday: new Date(updatedDetails.year, updatedDetails.month, updatedDetails.day),
+                    bio: updatedDetails.bio,
+                }
+            });
+
+
+
             res.redirect('/myprofile');
-            
+
         }
-        else{
+        else {
             res.redirect('/');
         }
     },
 
     settings: async function (req, res) {
-        if(req.isAuthenticated()){
-            const userDetails = await User.findOne({_id: req.user.user._id}); 
+        if (req.isAuthenticated()) {
+            const userDetails = await User.findOne({ _id: req.user.user._id });
             let day = '';
             let month = '';
             let year = '';
-            if(userDetails.birthday === undefined){
+            if (userDetails.birthday === undefined) {
                 day = '';
                 month = '';
                 year = '';
             }
-            else{
+            else {
                 day = userDetails.birthday.getDate();
                 month = userDetails.birthday.getMonth();
                 year = userDetails.birthday.getFullYear();
@@ -449,13 +456,13 @@ const controller = {
                 month: month,
                 year: year,
             }
-            res.render ('settings', {
-                layout: 'profileTemplate', 
+            res.render('settings', {
+                layout: 'profileTemplate',
                 session: req.isAuthenticated(),
                 userProfile: userdetails,
             });
         }
-        else{
+        else {
             res.redirect('/');
         }
     },
@@ -464,10 +471,10 @@ const controller = {
         console.log(`Search Query: ${req.body.search}`);
 
         const cafes = [];
-        const cafeList = await Cafe.find({name: { $regex : '.*' + req.body.search + '.*', $options: 'i'}})
-        for(let i = 0; i < cafeList.length; i++){
-            const review = await Review.find({cafeName: cafeList[i]._id})
-            
+        const cafeList = await Cafe.find({ name: { $regex: '.*' + req.body.search + '.*', $options: 'i' } })
+        for (let i = 0; i < cafeList.length; i++) {
+            const review = await Review.find({ cafeName: cafeList[i]._id })
+
             cafes.push({
                 cafeName: cafeList[i].name,
                 numOfReviews: review.length,
@@ -486,85 +493,85 @@ const controller = {
                 session: req.isAuthenticated()
             });
         }
-        else{
+        else {
             res.render('cafes', {
                 cafeCards: cafes,
                 session: req.isAuthenticated()
             });
         }
-        
+
     },
 
-    deleteReview: async function(req, res) {
-        try{
+    deleteReview: async function (req, res) {
+        try {
             const review_id = req.user.user._id;
             const cafe_id = req.body.cafe_id;
-            const review = await Review.findOne({reviewer: review_id, cafeName: cafe_id});
-            const cafe = await Cafe.findOne({_id: cafe_id});
-            const reviews = await Review.find({cafeName: cafe_id});
+            const review = await Review.findOne({ reviewer: review_id, cafeName: cafe_id });
+            const cafe = await Cafe.findOne({ _id: cafe_id });
+            const reviews = await Review.find({ cafeName: cafe_id });
 
-            if(reviews.length == 1)
+            if (reviews.length == 1)
                 cafe.rating = 0;
             else
                 cafe.rating = 2 * parseFloat(cafe.rating) - parseInt(review.rating);
             await cafe.save()
-            if(review.ownerReply != null){
-                await Reply.deleteOne({_id: review.ownerReply});
+            if (review.ownerReply != null) {
+                await Reply.deleteOne({ _id: review.ownerReply });
             }
 
-            await Review.deleteOne({reviewer: review_id, cafeName: cafe_id});
+            await Review.deleteOne({ reviewer: review_id, cafeName: cafe_id });
             res.sendStatus(200);
-        }catch{
+        } catch {
             res.sendStatus(400)
         }
     },
 
-    editReview: async function(req, res) {
-        try{
+    editReview: async function (req, res) {
+        try {
             const review_id = req.body.review_id;
             const newReview = req.body.review;
             const newTitle = req.body.review_title.trim();
             const newRating = req.body.rating;
             const oldrating = req.body.oldRating;
-            const rev = await Review.findOne({_id: review_id});
+            const rev = await Review.findOne({ _id: review_id });
 
-            if(newRating != rev.rating || newRating != 0){
+            if (newRating != rev.rating || newRating != 0) {
                 rev.review = newReview;
                 rev.review_title = newTitle;
                 rev.rating = newRating;
                 rev.dateModified = Date.now();
                 await rev.save();
 
-                const cafe = await Cafe.findOne({_id: rev.cafeName});
+                const cafe = await Cafe.findOne({ _id: rev.cafeName });
                 cafe.rating = 2 * parseFloat(cafe.rating) - parseInt(oldrating);
-                cafe.rating = (parseFloat(cafe.rating) + parseInt(newRating))/2;
+                cafe.rating = (parseFloat(cafe.rating) + parseInt(newRating)) / 2;
                 await cafe.save();
             }
             else
-                await Review.updateOne({_id: review_id}, {review: newReview, review_title: newTitle, dateModified: Date.now()});
+                await Review.updateOne({ _id: review_id }, { review: newReview, review_title: newTitle, dateModified: Date.now() });
             res.sendStatus(200);
         }
-        catch(err){
+        catch (err) {
             console.log(err);
             res.sendStatus(400)
         }
     },
 
-     userProfile: async function (req, res) {
-        try{
+    userProfile: async function (req, res) {
+        try {
             const username = req.params.username;
             const split = username.split("%20")[0].split(" ");
-           
-            const userDetails = await User.findOne({firstname: split[0], lastname: split[1]});
-            const reviews = await Review.find({reviewer: userDetails._id});
+
+            const userDetails = await User.findOne({ firstname: split[0], lastname: split[1] });
+            const reviews = await Review.find({ reviewer: userDetails._id });
             const reviewList = [];
             let five = 0;
             let four = 0;
             let three = 0;
             let two = 0;
             let one = 0;
-            for(let i = 0; i < reviews.length; i++){
-                const cafe = await Cafe.findOne({_id: reviews[i].cafeName});
+            for (let i = 0; i < reviews.length; i++) {
+                const cafe = await Cafe.findOne({ _id: reviews[i].cafeName });
                 reviewList.push({
                     cafe: cafe.name,
                     title: reviews[i].review_title,
@@ -572,7 +579,7 @@ const controller = {
                     reviewtext: reviews[i].review,
                     cafeimg: cafe.image,
                 })
-                switch(reviewList[i].rating){
+                switch (reviewList[i].rating) {
                     case 5:
                         five++; break;
                     case 4:
@@ -598,19 +605,19 @@ const controller = {
                 ichi: one,
             }
 
-            res.render ('userProfile', {
-                layout: 'profileTemplate', 
+            res.render('userProfile', {
+                layout: 'profileTemplate',
                 userProfile: userdetails,
                 reviews: reviewList,
                 session: req.isAuthenticated()
             });
-        }catch(err){
+        } catch (err) {
             res.sendStatus(400)
         }
     },
 
-    reply: async function(req, res) {
-        try{
+    reply: async function (req, res) {
+        try {
             const review_id = req.body.reviewId;
             const reply = req.body.reply;
 
@@ -622,28 +629,28 @@ const controller = {
             const newReply = new Reply(doc);
             await newReply.save();
 
-            await Review.updateOne({_id: review_id}, {ownerReply: newReply._id});
+            await Review.updateOne({ _id: review_id }, { ownerReply: newReply._id });
         }
-        catch(err){
+        catch (err) {
             console.log(err);
             res.sendStatus(400)
         }
 
     },
 
-    upvote: async function(req, res) {
-        try{
-            if(req.isAuthenticated()){
+    upvote: async function (req, res) {
+        try {
+            if (req.isAuthenticated()) {
                 const review_id = req.body.reviewId;
-                const user = await User.findOne({_id: req.user.user._id});
-                const review = await Review.findOne({_id: review_id});
+                const user = await User.findOne({ _id: req.user.user._id });
+                const review = await Review.findOne({ _id: review_id });
 
-                if(user.upvotes.includes(review_id)){
+                if (user.upvotes.includes(review_id)) {
                     user.upvotes.splice(user.upvotes.indexOf(review_id), 1);
                     review.upvotes--;
                 }
-                else{
-                    if(user.downvotes.includes(review_id)){
+                else {
+                    if (user.downvotes.includes(review_id)) {
                         user.downvotes.splice(user.downvotes.indexOf(review_id), 1);
                         review.downvotes--;
                     }
@@ -658,25 +665,25 @@ const controller = {
             else
                 res.sendStatus(400)
         }
-        catch(err){
+        catch (err) {
             console.log(err);
             res.sendStatus(400)
         }
     },
-    
-    downvote: async function(req, res) {
-        try{
-            if(req.isAuthenticated()){
-                const review_id = req.body.reviewId;
-                const user = await User.findOne({_id: req.user.user._id});
-                const review = await Review.findOne({_id: review_id});
 
-                if(user.downvotes.includes(review_id)){
+    downvote: async function (req, res) {
+        try {
+            if (req.isAuthenticated()) {
+                const review_id = req.body.reviewId;
+                const user = await User.findOne({ _id: req.user.user._id });
+                const review = await Review.findOne({ _id: review_id });
+
+                if (user.downvotes.includes(review_id)) {
                     user.downvotes.splice(user.downvotes.indexOf(review_id), 1);
                     review.downvotes--;
                 }
-                else{
-                    if(user.upvotes.includes(review_id)){
+                else {
+                    if (user.upvotes.includes(review_id)) {
                         user.upvotes.splice(user.upvotes.indexOf(review_id), 1);
                         review.upvotes--;
                     }
@@ -691,7 +698,7 @@ const controller = {
             else
                 res.sendStatus(400)
         }
-        catch(err){
+        catch (err) {
             console.log(err);
             res.sendStatus(400)
         }
@@ -708,7 +715,7 @@ const controller = {
     - change media in edit review
     - is the read more thing fixed?
     */
-    
+
 }
 
 export default controller;

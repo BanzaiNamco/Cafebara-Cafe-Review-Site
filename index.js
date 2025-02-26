@@ -15,10 +15,9 @@ import cookieParser from 'cookie-parser';
 
 
 const port = process.env.PORT;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// import { connectToMongo, getDb }  from './conn.js';
-// import { URLSearchParams }      from 'url';
-// import { ObjectId }             from 'mongodb';
 import { fileURLToPath }        from 'url';
 import { dirname, join }        from 'path';
 
@@ -28,6 +27,7 @@ await initPassport(passport);
 
 app.engine("hbs", exphbs.engine({extname: 'hbs', defaultLayout: 'main'}));
 app.set("view engine", "hbs");
+app.use('/partials', express.static(path.join(__dirname, 'views/partials')));
 app.set("views", "./views");
 
 app.use ( express.static(`public`) );
@@ -84,3 +84,8 @@ Handlebars.registerHelper('truncateText', function (text, maxLength) {
       );
     }
   });
+
+  Handlebars.registerHelper('json', function(context) {
+    return JSON.stringify(context);
+});
+
