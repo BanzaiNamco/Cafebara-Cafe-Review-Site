@@ -15,122 +15,139 @@ document.addEventListener("DOMContentLoaded",function() {
     });
   
     // Add a click event listener to the "submitChanges" button
-    submitChangesBtn.addEventListener('click', function() {
-      // Get the data-rating value from the selectedRatingInput
-      const dataRating = parseInt(selectedRatingInput.value);
-  
-      // Show the "ratings" div and hide the "rating-container" div
-      ratingContainerDiv.classList.add('hidden');
-      ratingsDiv.classList.remove('hidden');
-  
-      // Update the displayed images based on the data-rating value
-      const fullImages = dataRating;
-      const emptyImages = 5 - dataRating;
-  
-      const fullImageHTML = '<img src="../../images/ratings/full.png" />';
-      const emptyImageHTML = '<img src="../../images/ratings/empty.png" />';
-  
-      let ratingsHTML = '';
-  
-      for (let i = 0; i < fullImages; i++) {
-        ratingsHTML += fullImageHTML;
-      }
-  
-      for (let i = 0; i < emptyImages; i++) {
-        ratingsHTML += emptyImageHTML;
-      }
-  
-      ratingsDiv.innerHTML = ratingsHTML;
+    submitChangesBtn.addEventListener('click', function(event) {
+        event.preventDefault(); // Prevent form submission if applicable
+      
+        // // Get the data-rating value from the selectedRatingInput
+        // const dataRating = parseInt(selectedRatingInput.value, 10);
+      
+        // // Show the "ratings" div and hide the "rating-container" div
+        // ratingContainerDiv.classList.add('hidden');
+        // ratingsDiv.classList.remove('hidden');
+      
+        // // Update the displayed images based on the data-rating value
+        // const fullImages = dataRating;
+        // const emptyImages = 5 - dataRating;
+        // const fullImageHTML = '<img src="../../images/ratings/full.png" />';
+        // const emptyImageHTML = '<img src="../../images/ratings/empty.png" />';
+      
+        // let ratingsHTML = '';
+      
+        // for (let i = 0; i < fullImages; i++) {
+        //   ratingsHTML += fullImageHTML;
+        // }
+        // for (let i = 0; i < emptyImages; i++) {
+        //   ratingsHTML += emptyImageHTML;
+        // }
+        // ratingsDiv.innerHTML = ratingsHTML;
+      
+        // // Get review title and review text from elements with class "editable"
+        // const editableForms = document.querySelectorAll(".editable");
+        // const review_title = editableForms[0].children[0].textContent.trim();
+        // const review = editableForms[1].children[0].textContent.trim();
+      
+        // // Instead of chaining multiple parentElement calls, use a more specific selector:
+        // // For example, if the parent container has a class "review-container" and the review id is stored in an element with class "review-id":
+        // const parent = this.closest('.review-container');
+        // const review_id = parent.querySelector('.review-id').textContent.trim();
+      
+        // const rating = selectedRatingInput.value;
+        
 
-      const editableforms = document.querySelectorAll(".editable");
-      const review_title = editableforms[0].children[0].innerHTML;
-      const review = editableforms[1].children[0].innerHTML;
-      const parent = this.parentElement.parentElement.parentElement.parentElement;
-
-      const rating = selectedRatingInput.value;
-      const review_id = parent.children[1].children[0].innerHTML;
-
-      fetch('/editReview', {
-          method: 'PUT',
-          body: JSON.stringify({review_id, review_title, review, rating}),
-          headers: {
-              'Content-Type': 'application/json'
-          }
-      }).then(response => {
-          console.log(response.data);
-          if (response.status == 200){
-              location.reload()
-          }
-          else
-              console.log("An error has occurred");
-      })
-    });
+        // fetch('/editReview', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json'
+        //   },
+        //   body: JSON.stringify({ review_id, review_title, review, rating })
+        // })
+        // .then(response => {
+        //   if (response.ok) {
+        //     return response.json();
+        //   } else {
+        //     throw new Error('Network response was not ok.');
+        //   }
+        // })
+        // .then(data => {
+        //   console.log(data);
+        //   location.reload();
+        // })
+        // .catch(error => {
+        //   console.error("An error has occurred:", error);
+        // });
+        console.log("submit changes clicked");
+      });
+      
 
     const deleteBtn = document.getElementById("deletebtn");
-    deleteBtn.addEventListener("click",function() {
-        let div = this.parentElement;
-        for(let i = 0; i < 5; i++){
-            div = div.parentElement;
-        }
-        console.log(div);
 
-        const cafe_id = document.getElementById("cafe_id").innerHTML;
-
-        fetch('/deleteReview', {
-            method: "DELETE",
-            body: JSON.stringify({cafe_id}),
-            headers: {
-                'Content-Type': 'application/json'
-        }
-        }).then(response => {
-            location.reload();
-            location.reload();
-            // console.log(response.data);
-        });
-
-    });
 
 
     //ALTERNATIVE EDIT
-    const editBtn2 = document.getElementById("edit-review");
-    if(editBtn2 != null){
-        editBtn2.addEventListener("click",function() {
-            const review_title = document.querySelector("#review-title").value;
-            const review = document.querySelector("#review-editor").value;
-            const rating = document.querySelector("#selected-rating").value;
-            const media = document.querySelector("#formFile").value;
-            const review_id = document.getElementById("review_id").innerHTML;
-            const oldRatingDiv = document.getElementById(review_id);
-            const oldRating = oldRatingDiv.children[0].children[1].children[0].getAttribute("data-rate");
+    document.addEventListener("DOMContentLoaded", function() {
+        const editBtn2 = document.getElementById("edit-review");
+      
+        editBtn2.addEventListener("click", function(event) {
+          event.preventDefault(); // Prevent default form submission
+      
+          console.log("edit clicked");
+      
+          // Retrieve input values
+          const review_title = document.querySelector("#review-title").value;
+          const review = document.querySelector("#review-editor").value;
+          const rating = document.querySelector("#selected-rating").value;
+          const media = document.querySelector("#formFile").value;
+          
+          // Retrieve review_id either from a hidden input or div
+          const reviewIdElement = document.getElementById("review_id");
+          let review_id = "";
+          // Try value first, then innerHTML/textContent
+          if (reviewIdElement.value !== undefined) {
+            review_id = reviewIdElement.value;
+          } else {
+            review_id = reviewIdElement.textContent.trim();
+          }
+          
+          // Get the old rating element more robustly
+          const oldRatingDiv = document.getElementById(review_id);
+          if (!oldRatingDiv) {
+            console.error("Old rating container not found for review id:", review_id);
+            return;
+          }
+          const oldRatingElement = oldRatingDiv.querySelector("[data-rate]");
+          if (!oldRatingElement) {
+            console.error("Element with data-rate attribute not found");
+            return;
+          }
+          const oldRating = oldRatingElement.getAttribute("data-rate");
+          console.log("editbtn2 clicked");
 
-            fetch('/editReview', {
-                method: 'PUT',
-                body: JSON.stringify({review_id, review_title, review, rating, media, oldRating}),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => {
-                if (response.status == 200){
-                    location.reload();
-                    location.reload();
-
-                    // const review = document.getElementById(review_id);
-                    // const revTitle = review.children[0].children[1].children[0];
-                    // const revBody = review.children[0].children[2].children[0];
-
-                    // revTitle.innerHTML = review_title.value;
-                    // revBody.innerHTML = review.value;
-
-                    // updateRating(rating, review_id);
-                }
-                else
-                    console.log("An error has occurred");
-            })
+          // Send data to the server
+          fetch('/editReview', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ review_id, review_title, review, rating, media, oldRating })
+          })
+          .then(response => {
+            if (response.ok) {
+              return response.json(); // Optionally, process returned data
+            } else {
+              return response.text().then(text => { throw new Error(text); });
+            }
+          })
+          .then(data => {
+            console.log("Success:", data);
+            location.reload();
+          })
+          .catch(error => {
+            console.error("An error has occurred:", error);
+          });
         });
-
-    }
-
-});
+      });
+}
+);      
 
 function updateRating(rating, review_id){
     const review = document.getElementById(review_id);

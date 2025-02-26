@@ -149,6 +149,21 @@ const controller = {
                 rating: cafe.rating
             };
 
+            if (req.user) {
+                const userReviewDoc = await Review.findOne({
+                    cafeName: cafe._id,
+                    reviewer: req.user.user._id
+                });
+                if (userReviewDoc) {
+                    writebuttondisable = true;
+                    userRating = userReviewDoc.rating;
+                    userReview = userReviewDoc.review;
+                    userReviewTitle = userReviewDoc.review_title;
+                    userReviewId = userReviewDoc._id;
+                    userReviewMedia = userReviewDoc.mediaPath;
+                }
+            }
+
             res.render("viewCafe", {
                 layout: 'cafeTemplate',
                 cafePage: cafeView,
@@ -186,17 +201,9 @@ const controller = {
         let author = false;
         let upvoted = false;
         let downvoted = false;
+
         if (session) {
             author = (reviewer.email == req.user.user.email) ? true : false;
-
-            if (author) {
-                writebuttondisable = true;
-                userRating = reviews.rating;
-                userReview = reviews.review;
-                userReviewTitle = reviews.review_title;
-                userReviewId = reviews._id;
-                userReviewMedia = reviews.mediaPath;
-            }
 
             if (req.user.user.upvotes.includes(reviews._id)) {
                 upvoted = true;
@@ -240,53 +247,69 @@ const controller = {
             const review = req.body.body;
             const review_title = req.body.title;
             const rating = req.body.rating;
-            const dateCreated = new Date()
+            const dateCreated = new Date();
             const email = req.user.user.email;
-
+    
+            // Process file uploads
             let img_path = req.files;
-            const attached = [];
-            console.log(img_path);
-            if (img_path === undefined) {
-                attached = [];
-            }
-            else {
+            let attached = [];
+            if (img_path && img_path.length > 0) {
                 for (let i = 0; i < img_path.length; i++) {
                     attached.push("../uploads/" + img_path[i].filename);
                 }
             }
-
+    
             const user = await User.findOne({ email: email });
-
             const cafe = await Cafe.findOne({ name: cafeName });
-            const newDoc = {
-                cafeName: cafe._id,
-                reviewer: user._id,
-                review: review,
-                review_title: review_title,
-                rating: rating,
-                dateCreated: dateCreated,
-                mediaPath: attached,
-                ownerreply: null
-            };
-
-            console.log(newDoc);
-
-            const newReview = new Review(newDoc);
-            await newReview.save();
-
-
-            if (cafe.rating === 0)
+    
+            // Check if a review for this cafe by the same user already exists
+            let existingReview = await Review.findOne({ 
+                cafeName: cafe._id, 
+                reviewer: user._id 
+            });
+    
+            if (existingReview) {
+                // Update the existing review instead of adding a new one
+                existingReview.review = review;
+                existingReview.review_title = review_title;
+                existingReview.rating = rating;
+                existingReview.dateCreated = dateCreated;
+                existingReview.mediaPath = attached;
+                await existingReview.save();
+            } else {
+                // Create a new review if no existing review is found
+                const newDoc = {
+                    cafeName: cafe._id,
+                    reviewer: user._id,
+                    review: review,
+                    review_title: review_title,
+                    rating: rating,
+                    dateCreated: dateCreated,
+                    mediaPath: attached,
+                    ownerreply: null
+                };
+    
+                // console.log(newDoc);
+                const newReview = new Review(newDoc);
+                await newReview.save();
+            }
+    
+            // Update cafe rating (note: you may want to adjust this if updating an existing review)
+            if (cafe.rating === 0) {
                 cafe.rating = parseInt(rating);
-            else
+            } else {
                 cafe.rating = (parseFloat(cafe.rating) + parseInt(rating)) / 2;
-
+            }
+    
             await cafe.save();
-
-            res.sendStatus(200)
-        } catch {
-            res.sendStatus(400)
+    
+            res.redirect(`/cafe/${cafeName}`);
+        } catch (error) {
+            console.error(error);
+            res.sendStatus(400);
         }
     },
+    
 
     profile: async function (req, res) {
         if (req.isAuthenticated()) {
@@ -527,6 +550,8 @@ const controller = {
     },
 
     editReview: async function (req, res) {
+        console.log('Incoming request body:', req.body);
+
         try {
             const review_id = req.body.review_id;
             const newReview = req.body.review;

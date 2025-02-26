@@ -1,7 +1,7 @@
     <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"></script>
-    <script src="../../scripts/hbs-init.js"></script>
+    <script src="../../scripts/hbs_init.js"></script>
     <script src = "../../scripts/cafe-rating.js"></script>
-    <script src = "../../scripts/lazy-loading.js"></script>
+    <script src = "../../scripts/lazy_loading.js"></script>
 
 
 <script>
@@ -47,7 +47,7 @@
                             <input type="hidden" name="cafename" value="{{cafePage.cafeName}}">
                             <br>
                             <div id = "review_id" hidden = "true">{{reviewId}}</div>
-                            <input type = "submit" id = "{{#unless writeReview}}submitreview{{else}}edit-review{{/unless}}">
+                            <input type = "submit" id = "submitreview">
                         </form>
                     </div>
                 </div>
