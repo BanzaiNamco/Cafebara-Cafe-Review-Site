@@ -4,19 +4,16 @@ import bcrypt from 'bcrypt';
 import passport from 'passport';
 
 const loginController = {
-
     getLogin: function (req, res) {
-        if(req.isAuthenticated()){
-            if(req.user.type === 'user')
+        if (req.isAuthenticated()) {
+            if (req.user.type === 'user')
                 res.redirect('/');
-            else if(req.user.type === 'cafe')
+            else if (req.user.type === 'cafe')
                 res.redirect('/myprofile');
-        }
-        else{
+        } else {
             if (!req.query)
                 res.render ('login', {layout: 'logregTemplate'});
-            else 
-            {
+            else {
                 res.render ('login', {
                     layout: 'logregTemplate',
                     message: req.query.message
@@ -41,21 +38,18 @@ const loginController = {
         req.logout(function(err) {
             if (err) { return next(err); }
             res.redirect('/');
-          });
+        });
     },
 
     getRegister: async function (req, res) {
-        if(req.isAuthenticated()){
+        if (req.isAuthenticated()) {
             res.redirect('/');
-        }
-        else{
-            
+        } else {   
             if (req.query) {
                 res.render ('register', {
                     layout: 'logregTemplate',
                     message: req.query.message});
-            }
-            else {
+            } else {
                 res.render ('register', {layout: 'logregTemplate'});
             }
         }
@@ -67,14 +61,14 @@ const loginController = {
             if (userdata.usertype === `customer`) {
                 const existingUser = await User.findOne({email: userdata.email});
 
-                if(existingUser){
+                if (existingUser) {
                     const queryParams = new URLSearchParams();
                     queryParams.append('message', 'Email already exists!');
                     const queryString = queryParams.toString();
                     return res.redirect(`/register?${queryString}`);
                 }
-                else{
-                    if(userdata.password === userdata.confirmpassword){
+                else {
+                    if (userdata.password === userdata.confirmpassword) {
                         const hashedPassword = await bcrypt.hash(req.body.password, 10);
                         const newUser = new User({
                             password: hashedPassword,
@@ -84,7 +78,7 @@ const loginController = {
                         });
                         newUser.save();
                         res.redirect('/login');
-                    }else{
+                    } else {
                         const queryParams = new URLSearchParams();
                         queryParams.append('message', 'Passwords do not match!');
                         const queryString = queryParams.toString();
@@ -94,14 +88,13 @@ const loginController = {
             }
             else if (userdata.usertype === `owner`) {
                 const existingCafe = await Cafe.findOne({email: userdata.email});
-                if(existingCafe){
+                if (existingCafe) {
                     const queryParams = new URLSearchParams();
                     queryParams.append('message', 'Email already exists!');
                     const queryString = queryParams.toString();
                     return res.redirect(`/register?${queryString}`);
-                }
-                else{
-                    if(userdata.password === userdata.confirmpassword){
+                } else {
+                    if (userdata.password === userdata.confirmpassword) {
                         const hashedPassword = await bcrypt.hash(req.body.password, 10);
                         const newCafe = new Cafe({
                             name: userdata.estname,
@@ -124,7 +117,6 @@ const loginController = {
             return res.sendStatus(500);
         }
     }
-
 }
 
 export default loginController;

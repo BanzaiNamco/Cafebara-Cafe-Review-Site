@@ -1,25 +1,28 @@
 import express from "express";
 import exphbs from "express-handlebars";
-import routes from './routes/routes.js';
 import db from './model/db.js';
 import bodyParser from 'body-parser';
 import Handlebars from 'handlebars';
 import path from 'path';
 import bcrypt from 'bcrypt';
 import passport from 'passport';
-import initPassport from './controllers/passport-config.js';
 import flash from 'express-flash';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-
+import initPassport from './controllers/passport-config.js';
+import loginRouter from "./routes/loginRouter.js";
+import profileRouter from "./routes/profileRouter.js";
+import reviewRouter from "./routes/reviewRouter.js";
+import cafeRouter from "./routes/cafeRouter.js";
 
 
 const port = process.env.PORT;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import { fileURLToPath }        from 'url';
-import { dirname, join }        from 'path';
+
+import {fileURLToPath} from 'url';
+import {dirname, join} from 'path';
 
 const app = express();
 
@@ -47,9 +50,10 @@ app.use ( session({
 app.use ( passport.initialize() );
 app.use ( passport.session() );
 app.use ( cookieParser() );
-
-
-app.use(`/`, routes); 
+app.use('/', loginRouter);
+app.use('/', profileRouter);
+app.use('/', reviewRouter);
+app.use('/', cafeRouter);
 
 db.connect();
 
@@ -76,16 +80,15 @@ Handlebars.registerHelper("grequal", function(a , b, options) {
 
 Handlebars.registerHelper('truncateText', function (text, maxLength) {
     if (text.length <= maxLength) {
-      return new Handlebars.SafeString(text);
+        return new Handlebars.SafeString(text);
     } else {
-      const truncatedText = text.substring(0, maxLength) + '...';
-      return new Handlebars.SafeString(
-        `<span class="truncated-text">${truncatedText}</span><button class="read-more-btn" data-fulltext="${text}">Read More</button>`
-      );
+        const truncatedText = text.substring(0, maxLength) + '...';
+        return new Handlebars.SafeString(
+            `<span class="truncated-text">${truncatedText}</span><button class="read-more-btn" data-fulltext="${text}">Read More</button>`
+        );
     }
-  });
-
-  Handlebars.registerHelper('json', function(context) {
-    return JSON.stringify(context);
 });
 
+Handlebars.registerHelper('json', function(context) {
+    return JSON.stringify(context);
+});
