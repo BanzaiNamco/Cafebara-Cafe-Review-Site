@@ -19,5 +19,5 @@ router.get(`/myprofile`, profileController.profile);
 router.get(`/settings`, profileController.settings);
 router.get(`/user/:username`, profileController.userProfile);
 router.post(`/updateprofile`,upload.single('dp_upload'), profileController.updateProfile)
-
+router.post(`/profile/get/review`, profileController.getProfileReview);
 export default router;

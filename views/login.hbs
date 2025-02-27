@@ -1,37 +1,36 @@
 <div class="container">
-        <div class = "header">
-            <div class = "header-signin active-login">
-                <a href = "/login">
-                    <img src = "../../images/assets/login.png">
-                    <h3>Sign In</h3>
-                </a>
-            </div>
-            <div class = "header-register inactive-login">
-                <a href = "/register">
-                    <img src = "../../images/assets/register.png">
-                    <h3>Register</h3>
-                </a>
-            </div>
+    <div class="header">
+        <div class="header-signin active-login">
+            <a href="/login">
+                <img src="../../images/assets/login.png">
+                <h3>Sign In</h3>
+            </a>
         </div>
-        <br>
-        <div class = "form-wrapper">
-            <span id="errReg" style="color: red;">{{message}}</span>
-            <form name = "login" action="/login" method = "POST" >
-                <div class = "singlebox">
-                    <label for="email">Email</label>
-                    <input type="email" class = "inputfield" placeholder = "Enter your email" id = "email" name="email" required>
-                </div>
-                <div class = "singlebox">
-                    <label for="password">Password</label>
-                    <input type="password" class = "inputfield" placeholder = "Enter your password" id = "password" name="password" required>
-                </div>
-                
-                <div id = "buton">
-                    <p id="errorMessage" class="d-none">Invalid email or password</p>
-                    <input type = "submit" id = "submit" name = "submit" value = "Sign In">
-                </div>
-            </form>
+        <div class="header-register inactive-login">
+            <a href="/register">
+                <img src="../../images/assets/register.png">
+                <h3>Register</h3>
+            </a>
         </div>
     </div>
+    <br>
+    <div class="form-wrapper">
+        <span id="errReg" style="color: red;">{{message}}</span>
+        <form name="login" action="/login" method="POST">
+            <div class="singlebox">
+                <label for="email">Email</label>
+                <input type="email" class="inputfield" placeholder="Enter your email" id="email" name="email" required>
+            </div>
+            <div class="singlebox">
+                <label for="password">Password</label>
+                <input type="password" class="inputfield" placeholder="Enter your password" id="password"
+                    name="password" required>
+            </div>
 
-    {{> footer}}
+            <div id="buton">
+                <p id="errorMessage" class="d-none">Invalid email or password</p>
+                <input type="submit" id="submit" name="submit" value="Sign In">
+            </div>
+        </form>
+    </div>
+</div>

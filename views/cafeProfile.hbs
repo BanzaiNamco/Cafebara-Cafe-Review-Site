@@ -1,44 +1,42 @@
-
-    <!-- 
+<!-- 
       BEGINNING OF MAIN CONTAINER
 
       Notes:  I made it container sm and userCon
               so that it inherits the properties of Bootstrap fluid
     -->
-    <div class="container-fluid userCon">
+    <script>
+  var cafeName = {{{ json ownerprofile.cafeName }}};
+  if ({{  reviewCount  }} == 0) {
+    var stopFetching = true;
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"></script>
+<script src="../../scripts/hbs_init.js"></script>
+<script src="../../scripts/cafe_lazy_loading.js"></script>
 
-        <div class="container-fluid">
+<div class="container-fluid userCon">
 
-            <div class="row">
+  <div class="container-fluid">
 
-              {{> ownerProfileDetails ownerprofile}}
-              <div class="col-8">
+    <div class="row">
 
-                <div class="container-sm">
-                    <h3 class="recommended">
-                    Reviews
-                    </h3>
+      {{> ownerProfileDetails ownerprofile}}
+      <div class="col-8" id="profileReviewController">
 
-                    <!-- DROPDOWN SORT BY -->
-                    <div class="dropdown recommended">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                          Sort by: 
-                        </button>
-                        <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="#">Date</a></li>
-                          <li><a class="dropdown-item" href="#">Alphabetical</a></li>
-                          <li><a class="dropdown-item" href="#">Most Useful</a></li>
-                        </ul>
-                    </div>
-                </div>
+        <div class="container-sm">
+          <h3 class="recommended">
+            Reviews
+          </h3>
 
-                <!--
+        </div>
+
+        <!--
                     List of revoews
                 -->
-                {{#each reviews}}
-                {{> ownerprofileReview this}}
-                {{/each}}
-              </div>
-            </div>
-        </div>
+        {{#each reviews}}
+        {{> ownerprofileReview this}}
+        {{/each}}
+      </div>
     </div>
+  </div>
+</div>

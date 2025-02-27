@@ -100,9 +100,13 @@ const profileController = {
                 });
             } else if (req.user.type == 'cafe') {
                 const cafe = await Cafe.findOne({ _id: req.user.user._id });
-                const reviews = await Review.find({ cafeName: req.user.user._id });
+                const reviews = await Review.find({ cafeName: req.user.user._id })
+                    .sort({ _id: -1 })
+                    .limit(3);
+                const reviewCount = await Review.find({ cafeName: req.user.user._id }).countDocuments();
+
                 const reviewList = [];
-                let average = 0;
+                let average = cafe.rating;
 
                 for (let i = 0; i < reviews.length; i++) {
                     const user = await User.findOne({ _id: reviews[i].reviewer });
@@ -123,9 +127,7 @@ const profileController = {
                         reviewList[i].reply = reply.reply_text;
                         reviewList[i].reply_date = reply.date.toString().substring(0, 15);
                     }
-                    average += reviews[i].rating;
                 }
-                average /= reviews.length;
 
                 const cafedetails = {
                     cafeimg: cafe.image,
@@ -139,7 +141,8 @@ const profileController = {
                     ownerprofile: cafedetails,
                     reviews: reviewList,
                     session: req.isAuthenticated(),
-                    owner: true
+                    owner: true,
+                    reviewCount
                 });
             }
         } else {
@@ -206,7 +209,7 @@ const profileController = {
                 month: month,
                 year: year,
             }
-            
+
             res.render('settings', {
                 layout: 'profileTemplate',
                 session: req.isAuthenticated(),
@@ -274,6 +277,37 @@ const profileController = {
         } catch (err) {
             res.sendStatus(400)
         }
+    },
+
+    getProfileReview: async function (req, res) {
+        const cafeName = req.body.cafeName;
+        const i = req.body.reviewCount;
+        const cafe = await Cafe.findOne({ name: cafeName });
+        const reviews = await Review.findOne({ cafeName: cafe._id })
+            .sort({ _id: 1 })
+            .skip(i);
+        if (reviews == null) {
+            res.json({ reviews: [] });
+            return
+        }
+        const user = await User.findOne({ _id: reviews.reviewer });
+        const reply = await Reply.findOne({ _id: reviews.ownerReply });
+        let review = {
+            reviewtext: reviews.review,
+            title: reviews.review_title,
+            media: reviews.mediaPath,
+            username: user.firstname + " " + user.lastname,
+            reviewdate: reviews.dateCreated.toString().substring(0, 15),
+            rating: reviews.rating,
+            memberyear: user.dateCreated.toString().substring(11, 15),
+            userimg: user.profilepic,
+            reviewId: reviews._id,
+        }
+        if (reply != null) {
+            review.reply = reply.reply_text;
+            review.reply_date = reply.date.toString().substring(0, 15);
+        }
+        res.json({ reviews: [review] });
     }
 }
 
