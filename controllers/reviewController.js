@@ -149,8 +149,9 @@ const reviewController = {
                 cafeName: cafe._id,
                 reviewer: user._id
             });
-
+            const reviewCount = await Review.countDocuments({ cafeName: cafe._id });
             if (existingReview) {
+                cafe.rating = ((cafe.rating * (reviewCount)) - existingReview.rating + parseInt(rating))/(reviewCount);
                 existingReview.review = review;
                 existingReview.review_title = review_title;
                 existingReview.rating = rating;
@@ -168,14 +169,9 @@ const reviewController = {
                     mediaPath: attached,
                     ownerreply: null
                 };
+                cafe.rating = ((cafe.rating * (reviewCount)) + parseInt(rating))/(reviewCount + 1);
                 const newReview = new Review(newDoc);
                 await newReview.save();
-            }
-
-            if (cafe.rating === 0) {
-                cafe.rating = parseInt(rating);
-            } else {
-                cafe.rating = (parseFloat(cafe.rating) + parseInt(rating)) / 2;
             }
 
             await cafe.save();

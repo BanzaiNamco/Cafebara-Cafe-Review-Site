@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded",function() {
             const dateCreated = Date.now();
             const media = document.querySelector("#formFile").value;
             //how to get current user
-
             console.log(cafeName, review_title, review, rating, dateCreated, media);
             fetch('/addReview', {
                 method: "POST",
@@ -31,7 +30,8 @@ document.addEventListener("DOMContentLoaded",function() {
             }).then(response => {
                 console.log(response.data);
                 if (response.status == 200){
-                    location.reload();
+                    console.log("Review added successfully");
+                    // location.reload();
                 }
                 else
                     console.log("An error has occurred");
