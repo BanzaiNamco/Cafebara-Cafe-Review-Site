@@ -2,6 +2,7 @@ import { Cafe } from '../model/cafeSchema.js';
 import { Review } from '../model/reviewsSchema.js';
 import { User } from '../model/userSchema.js';
 import { Reply } from '../model/ownerReply.js';
+import ReviewHelper from '../utils/reviewHelper.js';
 import mongoose from "mongoose";
 
 const reviewController = {
@@ -14,10 +15,8 @@ const reviewController = {
 
             let writebuttondisable = false;
             let userRating = 0;
-            let userReview;
-            let userReviewTitle;
-            let userReviewId;
-            let userReviewMedia;
+            let userReview, userReviewTitle, userReviewId, userReviewMedia;
+
             const cafeView = {
                 cafeName: cafe.name,
                 imgPath: cafe.image,
@@ -67,62 +66,33 @@ const reviewController = {
     },
 
     getCafeReview: async function (req, res) {
-        const cafeName = req.body.cafeName;
-        const i = req.body.reviewCount;
+        try{
+            const cafeName = req.body.cafeName;
+            const i = req.body.reviewCount;
 
-        const cafe = await Cafe.findOne({ name: cafeName });
-        const reviews = await Review.findOne({ cafeName: cafe._id })
-            .sort({ rating: -1, _id: 1 })
-            .skip(i);
-        if (reviews == null) {
-            res.json({ reviews: [] });
-            return
-        }
-        const session = req.isAuthenticated();
-        const reviewList = [];
-        const reply = await Reply.findOne({ _id: reviews.ownerReply });
-        const reviewer = await User.findOne({ _id: reviews.reviewer });
-        let author = false;
-        let upvoted = false;
-        let downvoted = false;
-
-        if (session) {
-            author = (reviewer.email == req.user.user.email) ? true : false;
-
-            if (req.user.user.upvotes.includes(reviews._id)) {
-                upvoted = true;
-            } else if (req.user.user.downvotes.includes(reviews._id)) {
-                downvoted = true;
+            const cafe = await Cafe.findOne({ name: cafeName });
+            const reviewDoc = await Review.findOne({ cafeName: cafe._id })
+                .sort({ rating: -1, _id: 1 })
+                .skip(i);
+            if (!reviewDoc) {
+                res.json({ reviews: [] });
+                return
             }
+            const session = req.isAuthenticated();
+            const reply = await Reply.findOne({ _id: reviewDoc.ownerReply });
+            const reviewer = await User.findOne({ _id: reviewDoc.reviewer });
+            const formattedReview = ReviewHelper.formatReview(
+                reviewDoc,
+                reviewer,
+                reply,
+                session,
+                req.user ? req.user.user : null
+            );
+            res.json({ reviews: [formattedReview] });
+        } catch (err) {
+        console.log(err);
+        res.sendStatus(400);
         }
-
-        let review = {
-            review: reviews.review,
-            reviewdate: reviews.dateCreated.toString().substring(0, 15),
-            rating: reviews.rating,
-            username: reviewer.firstname + " " + reviewer.lastname,
-            dateModified: reviews.dateModified,
-            up: reviews.upvotes,
-            down: reviews.downvotes,
-            media: reviews.mediaPath,
-            profilepic: reviewer.profilepic,
-            title: reviews.review_title,
-            author: author,
-            date: reviewer.dateCreated.toString().substring(11, 15),
-            reviewId: reviews._id,
-            upvoted: upvoted,
-            downvoted: downvoted,
-            session: session
-        };
-
-        if (reviews.dateModified != null)
-            review.editdate = reviews.dateModified.toString().substring(0, 15);
-        if (reply != null) {
-            review.ownerreplydate = reply.date.toString().substring(0, 15);
-            review.ownerreply = reply.reply_text;
-        }
-        reviewList.push(review);
-        res.json({ reviews: reviewList });
     },
 
     addReview: async function (req, res) {
@@ -151,7 +121,7 @@ const reviewController = {
             });
             const reviewCount = await Review.countDocuments({ cafeName: cafe._id });
             if (existingReview) {
-                cafe.rating = ((cafe.rating * (reviewCount)) - existingReview.rating + parseInt(rating))/(reviewCount);
+                ReviewHelper.updateRatingOnAdd(cafe, reviewCount, rating, existingReview.rating);
                 existingReview.review = review;
                 existingReview.review_title = review_title;
                 existingReview.rating = rating;
@@ -159,6 +129,7 @@ const reviewController = {
                 existingReview.mediaPath = attached;
                 await existingReview.save();
             } else {
+                ReviewHelper.updateRatingOnAdd(cafe, reviewCount, rating);
                 const newDoc = {
                     cafeName: cafe._id,
                     reviewer: user._id,
@@ -169,11 +140,9 @@ const reviewController = {
                     mediaPath: attached,
                     ownerreply: null
                 };
-                cafe.rating = ((cafe.rating * (reviewCount)) + parseInt(rating))/(reviewCount + 1);
                 const newReview = new Review(newDoc);
                 await newReview.save();
             }
-
             await cafe.save();
 
             res.redirect(`/cafe/${cafeName}`);
@@ -190,11 +159,8 @@ const reviewController = {
             const review = await Review.findOne({ reviewer: review_id, cafeName: cafe_id });
             const cafe = await Cafe.findOne({ _id: cafe_id });
             const reviews = await Review.find({ cafeName: cafe_id });
-
-            if (reviews.length == 1)
-                cafe.rating = 0;
-            else
-                cafe.rating = 2 * parseFloat(cafe.rating) - parseInt(review.rating);
+            
+            ReviewHelper.updateRatingOnDelete(cafe, review.rating, reviews.length);
             await cafe.save()
 
             if (review.ownerReply != null) {
@@ -225,11 +191,14 @@ const reviewController = {
                 await rev.save();
 
                 const cafe = await Cafe.findOne({ _id: rev.cafeName });
-                cafe.rating = 2 * parseFloat(cafe.rating) - parseInt(oldrating);
-                cafe.rating = (parseFloat(cafe.rating) + parseInt(newRating)) / 2;
+                ReviewHelper.updateRatingOnEdit(cafe, oldrating, newRating);
                 await cafe.save();
-            } else
-                await Review.updateOne({ _id: review_id }, { review: newReview, review_title: newTitle, dateModified: Date.now() });
+            } else {
+                await Review.updateOne(
+                    { _id: review_id }, 
+                    { review: newReview, review_title: newTitle, dateModified: Date.now() }
+                );
+            }
             res.sendStatus(200);
         } catch (err) {
             console.log(err);
@@ -251,6 +220,7 @@ const reviewController = {
             await newReply.save();
 
             await Review.updateOne({ _id: review_id }, { ownerReply: newReply._id });
+            res.sendStatus(200);
         } catch (err) {
             console.log(err);
             res.sendStatus(400)
@@ -286,7 +256,6 @@ const reviewController = {
                 await session.commitTransaction();
                 session.endSession();
                 res.sendStatus(200);
-
             } catch (err) {
                 await session.abortTransaction();
                 session.endSession();
@@ -328,7 +297,6 @@ const reviewController = {
                 await session.commitTransaction();
                 session.endSession();
                 res.sendStatus(200);
-
             } catch (err) {
                 await session.abortTransaction();
                 session.endSession();
@@ -338,7 +306,6 @@ const reviewController = {
         } else{
             res.sendStatus(400)
         }
-
     }
 }
 
