@@ -4,6 +4,7 @@ import { Review } from '../model/reviewsSchema.js';
 import { User } from '../model/userSchema.js';
 import { Reply } from '../model/ownerReply.js';
 import bcrypt from 'bcrypt';
+import fs from 'fs';
 
 const profileController = {
     getAbout: async function (req, res) {

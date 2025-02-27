@@ -154,11 +154,13 @@ const thumbsdownClass = "bi bi-hand-thumbs-down";
 
 function upvoteClicked(path, counterUp, counterDown, downPath){
     if(path.getAttribute("d") == thumbsupInnerHTML){
+        console.log("like")
         path.setAttribute("d",thumbsupFilledInnerHTML);
         path.parentElement.setAttribute("class",thumbsupFillClass);
         counterUp.innerHTML = parseInt(counterUp.innerHTML) + 1;
     }
     else{
+        console.log("remove like")
         path.setAttribute("d",thumbsupInnerHTML);
         path.parentElement.setAttribute("class",thumbsupClass);
         counterUp.innerHTML = parseInt(counterUp.innerHTML) - 1;

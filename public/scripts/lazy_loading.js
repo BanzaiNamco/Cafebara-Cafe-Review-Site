@@ -82,10 +82,15 @@ document.addEventListener("DOMContentLoaded", () => {
                                 const counterUp = newUP.parentElement.children[0];
                                 const counterDown = newUP.parentElement.children[2];
                                 const downPath = newUP.parentElement.children[3].children[0];
-
+                                let type 
+                                if(path.getAttribute("d") == thumbsupInnerHTML){
+                                    type = "like"
+                                } else{
+                                    type = "remove like"
+                                }
                                 fetch('/upvote', {
                                     method: "POST",
-                                    body: JSON.stringify({ 'reviewId': review_id }),
+                                    body: JSON.stringify({ 'reviewId': review_id, type }),
                                     headers: {
                                         'Content-Type': 'application/json'
                                     }
@@ -96,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     else
                                         console.log("Failed to upvote");
                                 });
-                            })
+                            });
                             newUP.classList.remove('new-up');
                         }
 
@@ -109,11 +114,15 @@ document.addEventListener("DOMContentLoaded", () => {
                                 const counterUp = newDown.parentElement.children[0];
                                 const counterDown = newDown.parentElement.children[2];
                                 const upPath = newDown.parentElement.children[1].children[0];
-                    
-                    
+                                let type
+                                if(path.getAttribute("d") == thumbsdownInnerHTML){
+                                    type = "dislike"
+                                } else{
+                                    type = "remove dislike"
+                                }
                                 fetch('/downvote', {
                                     method: "POST",
-                                    body: JSON.stringify({'reviewId' : review_id}),
+                                    body: JSON.stringify({'reviewId' : review_id, type}),
                                     headers: {
                                         'Content-Type': 'application/json'
                                     }

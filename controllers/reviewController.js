@@ -2,6 +2,7 @@ import { Cafe } from '../model/cafeSchema.js';
 import { Review } from '../model/reviewsSchema.js';
 import { User } from '../model/userSchema.js';
 import { Reply } from '../model/ownerReply.js';
+import mongoose from "mongoose";
 
 const reviewController = {
     cafe: async function (req, res) {
@@ -132,7 +133,7 @@ const reviewController = {
             const rating = req.body.rating;
             const dateCreated = new Date();
             const email = req.user.user.email;
-    
+
             let img_path = req.files;
             let attached = [];
             if (img_path && img_path.length > 0) {
@@ -140,15 +141,15 @@ const reviewController = {
                     attached.push("../uploads/" + img_path[i].filename);
                 }
             }
-    
+
             const user = await User.findOne({ email: email });
             const cafe = await Cafe.findOne({ name: cafeName });
-    
-            let existingReview = await Review.findOne({ 
-                cafeName: cafe._id, 
-                reviewer: user._id 
+
+            let existingReview = await Review.findOne({
+                cafeName: cafe._id,
+                reviewer: user._id
             });
-    
+
             if (existingReview) {
                 existingReview.review = review;
                 existingReview.review_title = review_title;
@@ -170,15 +171,15 @@ const reviewController = {
                 const newReview = new Review(newDoc);
                 await newReview.save();
             }
-    
+
             if (cafe.rating === 0) {
                 cafe.rating = parseInt(rating);
             } else {
                 cafe.rating = (parseFloat(cafe.rating) + parseInt(rating)) / 2;
             }
-    
+
             await cafe.save();
-    
+
             res.redirect(`/cafe/${cafeName}`);
         } catch (error) {
             console.error(error);
@@ -261,63 +262,87 @@ const reviewController = {
     },
 
     upvote: async function (req, res) {
-        try {
-            if (req.isAuthenticated()) {
+        if (req.isAuthenticated()) {
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            try {
                 const review_id = req.body.reviewId;
-                const user = await User.findOne({ _id: req.user.user._id });
-                const review = await Review.findOne({ _id: review_id });
-
-                if (user.upvotes.includes(review_id)) {
-                    user.upvotes.splice(user.upvotes.indexOf(review_id), 1);
-                    review.upvotes--;
+                const type = req.body.type;
+                const user = await User.findOne({ _id: req.user.user._id }).session(session);
+                const review = await Review.findOne({ _id: review_id }).session(session);
+                if (type == "remove like") {
+                    if (user.upvotes.includes(review_id)) {
+                        user.upvotes.splice(user.upvotes.indexOf(review_id), 1);
+                        review.upvotes--;
+                    }
                 } else {
                     if (user.downvotes.includes(review_id)) {
                         user.downvotes.splice(user.downvotes.indexOf(review_id), 1);
                         review.downvotes--;
                     }
-                    user.upvotes.push(review_id);
-                    review.upvotes++;
+                    if (!user.upvotes.includes(review_id)) {
+                        user.upvotes.push(review_id);
+                        review.upvotes++;
+                    }
                 }
-
-                await user.save();
-                await review.save();
+                await user.save({ session });
+                await review.save({ session });
+                await session.commitTransaction();
+                session.endSession();
                 res.sendStatus(200);
-            } else
+
+            } catch (err) {
+                await session.abortTransaction();
+                session.endSession();
+                console.log(err);
                 res.sendStatus(400)
-        } catch (err) {
-            console.log(err);
+            }
+        } else {
             res.sendStatus(400)
         }
     },
 
     downvote: async function (req, res) {
-        try {
-            if (req.isAuthenticated()) {
+        if (req.isAuthenticated()) {
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            try {
                 const review_id = req.body.reviewId;
-                const user = await User.findOne({ _id: req.user.user._id });
-                const review = await Review.findOne({ _id: review_id });
-
-                if (user.downvotes.includes(review_id)) {
-                    user.downvotes.splice(user.downvotes.indexOf(review_id), 1);
-                    review.downvotes--;
+                const type = req.body.type;
+                const user = await User.findOne({ _id: req.user.user._id }).session(session);
+                const review = await Review.findOne({ _id: review_id }).session(session);
+                if (type == "remove dislike") {
+                    if (user.downvotes.includes(review_id)) {
+                        user.downvotes.splice(user.downvotes.indexOf(review_id), 1);
+                        review.downvotes--;
+                    } 
                 } else {
                     if (user.upvotes.includes(review_id)) {
                         user.upvotes.splice(user.upvotes.indexOf(review_id), 1);
                         review.upvotes--;
                     }
-                    user.downvotes.push(review_id);
-                    review.downvotes++;
+                    if (!user.downvotes.includes(review_id)) {
+                        user.downvotes.push(review_id);
+                        review.downvotes++;
+                    }
                 }
 
                 await user.save();
                 await review.save();
+                await session.commitTransaction();
+                session.endSession();
                 res.sendStatus(200);
-            } else
+
+            } catch (err) {
+                await session.abortTransaction();
+                session.endSession();
+                console.log(err);
                 res.sendStatus(400)
-        } catch (err) {
-            console.log(err);
+            }
+        } else{
             res.sendStatus(400)
         }
+
     }
 }
 
