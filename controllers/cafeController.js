@@ -1,5 +1,5 @@
-import { Cafe } from '../model/cafeSchema.js';
-import { Review } from '../model/reviewsSchema.js';
+import CafeHelper from '../utils/cafeHelper.js';
+
 
 const cafeController = {
     getIndex: async function (req, res) {
@@ -10,15 +10,7 @@ const cafeController = {
                     return
                 }
             }
-            const cafeCarouselCards = [];
-            const resp = await Cafe.find().sort({ dateCreated: -1 }).limit(5)
-            for (let i = 0; i < resp.length; i++) {
-                cafeCarouselCards.push({
-                    cafeName: resp[i].name,
-                    cafePath: resp[i].image,
-                    avgPrice: resp[i].price
-                });
-            };
+            const cafeCarouselCards = await CafeHelper.getCafeCarouselCards();
             res.render('index', {
                 isIndex: true,
                 carouselCards: cafeCarouselCards,
@@ -31,22 +23,7 @@ const cafeController = {
 
     getCafes: async function (req, res) {
         try {
-            const cafes = [];
-            const resp = await Cafe.find()
-            for (let i = 0; i < resp.length; i++) {
-                const result = await Review.find({ cafeName: resp[i]._id });
-                cafes.push({
-                    cafeName: resp[i].name,
-                    numOfReviews: result.length,
-                    cafeShortInfo: resp[i].description,
-                    open_details: resp[i].weekdays_avail,
-                    cafeImg: resp[i].image,
-                    price: resp[i].price,
-                    rating: resp[i].rating,
-                    media: resp[i].mediPath,
-                });
-            };
-
+            const cafes = await CafeHelper.getCafeList();
             res.render('cafes', {
                 cafeCards: cafes,
                 session: req.isAuthenticated(),
@@ -58,33 +35,15 @@ const cafeController = {
     },
 
     searchcafes: async function (req, res) {
-        const cafes = [];
-        const cafeList = await Cafe.find({ name: { $regex: '.*' + req.body.search + '.*', $options: 'i' } })
-        for (let i = 0; i < cafeList.length; i++) {
-            const review = await Review.find({ cafeName: cafeList[i]._id })
-
-            cafes.push({
-                cafeName: cafeList[i].name,
-                numOfReviews: review.length,
-                cafeShortInfo: cafeList[i].description,
-                open_details: cafeList[i].weekdays_avail,
-                cafeImg: cafeList[i].image,
-                price: cafeList[i].price,
-                rating: cafeList[i].rating
-            });
-        }
-
-        if (cafes.length == 0) {
+        try {
+            const cafes = await CafeHelper.searchCafesByName(req.body.search);
             res.render('cafes', {
                 cafeCards: cafes,
-                error: "<h2 style='width: 100%; text-align: center;'>No results found...</h2>",
-                session: req.isAuthenticated()
+                session: req.isAuthenticated(),
+                error: cafes.length === 0 ? "<h2 style='width: 100%; text-align: center;'>No results found...</h2>" : null
             });
-        } else {
-            res.render('cafes', {
-                cafeCards: cafes,
-                session: req.isAuthenticated()
-            });
+        } catch {
+            res.sendStatus(400);
         }
     }
 }
