@@ -25,7 +25,7 @@ class ProfileHelper {
         const filter = isCafe ? { cafeName: userId } : { reviewer: userId };
         const reviews = await Review.find(filter);
         let reviewList = [];
-        let five = 0, four = 0, three = 0, two = 0, one = 0;
+        let go = 0, shi = 0, san = 0, ni = 0, ichi = 0;
         let totalRating = 0;
 
         for (let review of reviews) {
@@ -56,19 +56,17 @@ class ProfileHelper {
             }
 
             switch (review.rating) {
-                case 5: five++; break;
-                case 4: four++; break;
-                case 3: three++; break;
-                case 2: two++; break;
-                case 1: one++; break;
+                case 5: go++; break;
+                case 4: shi++; break;
+                case 3: san++; break;
+                case 2: ni++; break;
+                case 1: ichi++; break;
             }
 
             reviewList.push(reviewData);
         }
 
-        const avgRating = isCafe ? totalRating / (reviews.length || 1) : null;
-
-        return { reviewList, stats: { five, four, three, two, one }, avgRating };
+        return { reviewList, stats: { go, shi, san, ni, ichi } };
     }
 }
 

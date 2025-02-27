@@ -1,5 +1,8 @@
 import { About } from '../model/aboutSchema.js';
 import { User } from '../model/userSchema.js';
+import { Cafe } from '../model/cafeSchema.js';
+import { Review } from '../model/reviewsSchema.js';
+import { Reply } from '../model/ownerReply.js';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
 import ProfileHelper from '../utils/profileHelper.js';
@@ -45,11 +48,10 @@ const profileController = {
 
     profile: async function (req, res) {
         if (!req.isAuthenticated()) return res.redirect('/');
-            
+
         if (req.user.type == 'user') {
             const userDetails = await ProfileHelper.getUserDetails(req.user.user._id);
             const { reviewList, stats } = await ProfileHelper.getReviews(req.user.user._id);
-
             const userdetails = {
                 imgsrc: userDetails.profilepic,
                 username: userDetails.firstname + " " + userDetails.lastname,
@@ -58,62 +60,59 @@ const profileController = {
                 ...stats
             }
 
-                res.render('userProfile', {
-                    layout: 'profileTemplate',
-                    userProfile: userdetails,
-                    reviews: reviewList,
-                    session: req.isAuthenticated(),
-                    isProfile: true
-                });
-            } else if (req.user.type == 'cafe') {
-                const cafe = await Cafe.findOne({ _id: req.user.user._id });
-                const reviews = await Review.find({ cafeName: req.user.user._id })
-                    .sort({ _id: -1 })
-                    .limit(3);
-                const reviewCount = await Review.find({ cafeName: req.user.user._id }).countDocuments();
+            res.render('userProfile', {
+                layout: 'profileTemplate',
+                userProfile: userdetails,
+                reviews: reviewList,
+                session: req.isAuthenticated(),
+                isProfile: true
+            });
+        } else if (req.user.type == 'cafe') {
+            const cafeDetails = await ProfileHelper.getCafeDetails(req.user.user._id);
+            const reviews = await Review.find({ cafeName: req.user.user._id })
+                .sort({ _id: -1 })
+                .limit(3);
+            const reviewCount = await Review.find({ cafeName: req.user.user._id }).countDocuments();
 
-                const reviewList = [];
-                let average = cafe.rating;
+            const reviewList = [];
+            let average = cafeDetails.rating;
 
-                for (let i = 0; i < reviews.length; i++) {
-                    const user = await User.findOne({ _id: reviews[i].reviewer });
-                    const reply = await Reply.findOne({ _id: reviews[i].ownerReply });
-                    reviewList.push({
-                        reviewtext: reviews[i].review,
-                        title: reviews[i].review_title,
-                        media: reviews[i].mediaPath,
-                        username: user.firstname + " " + user.lastname,
-                        reviewdate: reviews[i].dateCreated.toString().substring(0, 15),
-                        rating: reviews[i].rating,
-                        memberyear: user.dateCreated.toString().substring(11, 15),
-                        userimg: user.profilepic,
-                        reviewId: reviews[i]._id,
-                    })
+            for (let i = 0; i < reviews.length; i++) {
+                const user = await User.findOne({ _id: reviews[i].reviewer });
+                const reply = await Reply.findOne({ _id: reviews[i].ownerReply });
+                reviewList.push({
+                    reviewtext: reviews[i].review,
+                    title: reviews[i].review_title,
+                    media: reviews[i].mediaPath,
+                    username: user.firstname + " " + user.lastname,
+                    reviewdate: reviews[i].dateCreated.toString().substring(0, 15),
+                    rating: reviews[i].rating,
+                    memberyear: user.dateCreated.toString().substring(11, 15),
+                    userimg: user.profilepic,
+                    reviewId: reviews[i]._id,
+                })
 
-                    if (reply != null) {
-                        reviewList[i].reply = reply.reply_text;
-                        reviewList[i].reply_date = reply.date.toString().substring(0, 15);
-                    }
+                if (reply != null) {
+                    reviewList[i].reply = reply.reply_text;
+                    reviewList[i].reply_date = reply.date.toString().substring(0, 15);
                 }
-
-                const cafedetails = {
-                    cafeimg: cafe.image,
-                    cafeName: cafe.name,
-                    description: cafe.description,
-                    numreviews: reviews.length,
-                    rating: average
-                }
-                res.render('cafeProfile', {
-                    layout: 'ownerTemplate',
-                    ownerprofile: cafedetails,
-                    reviews: reviewList,
-                    session: req.isAuthenticated(),
-                    owner: true,
-                    reviewCount
-                });
             }
-        } else {
-            res.redirect('/');
+
+            const cafedetails = {
+                cafeimg: cafeDetails.image,
+                cafeName: cafeDetails.name,
+                description: cafeDetails.description,
+                numreviews: reviews.length,
+                rating: average
+            }
+            res.render('cafeProfile', {
+                layout: 'ownerTemplate',
+                ownerprofile: cafedetails,
+                reviews: reviewList,
+                session: req.isAuthenticated(),
+                owner: true,
+                reviewCount
+            });
         }
     },
 
@@ -157,15 +156,7 @@ const profileController = {
                 bio: userDetails.bio,
                 ...birthDate,
             }
-
-            res.render('settings', {
-                layout: 'profileTemplate',
-                session: req.isAuthenticated(),
-                userProfile: userdetails,
-            });
-        } else {
-            res.redirect('/');
-        }
+        });
     },
 
     userProfile: async function (req, res) {
@@ -173,7 +164,7 @@ const profileController = {
             const [firstName, lastName] = req.params.username.split("%20")[0].split(" ");
             const userDetails = await User.findOne({ firstname: firstName, lastname: lastName });
             if (!userDetails) return res.sendStatus(404);
-            
+
             const { reviewList, stats } = await ProfileHelper.getReviews(userDetails._id);
 
             const userdetails = {
