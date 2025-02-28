@@ -128,7 +128,7 @@ const reviewController = {
                 existingReview.rating = rating;
                 existingReview.dateCreated = dateCreated;
                 existingReview.mediaPath = attached;
-                await existingReview.save().session(session);
+                await existingReview.save({ session });
             } else {
                 ReviewHelper.updateRatingOnAdd(cafe, reviewCount, rating);
                 const newDoc = {
@@ -142,9 +142,9 @@ const reviewController = {
                     ownerreply: null
                 };
                 const newReview = new Review(newDoc);
-                await newReview.save().session(session);
+                await newReview.save({ session });
             }
-            await cafe.save().session(session);
+            await cafe.save({ session });
             await session.commitTransaction();
             session.endSession();
             res.redirect(`/cafe/${cafeName}`);
@@ -167,7 +167,7 @@ const reviewController = {
             const reviews = await Review.find({ cafeName: cafe_id }).session(session);
             
             ReviewHelper.updateRatingOnDelete(cafe, review.rating, reviews.length);
-            await cafe.save().session(session);
+            await cafe.save({ session });
 
             if (review.ownerReply != null) {
                 await Reply.deleteOne({ _id: review.ownerReply }).session(session);
