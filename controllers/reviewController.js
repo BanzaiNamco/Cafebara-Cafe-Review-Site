@@ -96,6 +96,8 @@ const reviewController = {
     },
 
     addReview: async function (req, res) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const cafeName = req.body.cafename;
             const review = req.body.body;
@@ -111,15 +113,14 @@ const reviewController = {
                     attached.push("../uploads/" + img_path[i].filename);
                 }
             }
-
-            const user = await User.findOne({ email: email });
-            const cafe = await Cafe.findOne({ name: cafeName });
+            const user = await User.findOne({ email: email }).session(session);
+            const cafe = await Cafe.findOne({ name: cafeName }).session(session);
 
             let existingReview = await Review.findOne({
                 cafeName: cafe._id,
                 reviewer: user._id
-            });
-            const reviewCount = await Review.countDocuments({ cafeName: cafe._id });
+            }).session(session);
+            const reviewCount = await Review.countDocuments({ cafeName: cafe._id }).session(session);
             if (existingReview) {
                 ReviewHelper.updateRatingOnAdd(cafe, reviewCount, rating, existingReview.rating);
                 existingReview.review = review;
@@ -127,7 +128,7 @@ const reviewController = {
                 existingReview.rating = rating;
                 existingReview.dateCreated = dateCreated;
                 existingReview.mediaPath = attached;
-                await existingReview.save();
+                await existingReview.save().session(session);
             } else {
                 ReviewHelper.updateRatingOnAdd(cafe, reviewCount, rating);
                 const newDoc = {
@@ -141,35 +142,44 @@ const reviewController = {
                     ownerreply: null
                 };
                 const newReview = new Review(newDoc);
-                await newReview.save();
+                await newReview.save().session(session);
             }
-            await cafe.save();
-
+            await cafe.save().session(session);
+            await session.commitTransaction();
+            session.endSession();
             res.redirect(`/cafe/${cafeName}`);
         } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
             console.error(error);
             res.sendStatus(400);
         }
     },
 
     deleteReview: async function (req, res) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
         try {
             const review_id = req.user.user._id;
             const cafe_id = req.body.cafe_id;
-            const review = await Review.findOne({ reviewer: review_id, cafeName: cafe_id });
-            const cafe = await Cafe.findOne({ _id: cafe_id });
-            const reviews = await Review.find({ cafeName: cafe_id });
+            const review = await Review.findOne({ reviewer: review_id, cafeName: cafe_id }).session(session);
+            const cafe = await Cafe.findOne({ _id: cafe_id }).session(session);
+            const reviews = await Review.find({ cafeName: cafe_id }).session(session);
             
             ReviewHelper.updateRatingOnDelete(cafe, review.rating, reviews.length);
-            await cafe.save()
+            await cafe.save().session(session);
 
             if (review.ownerReply != null) {
-                await Reply.deleteOne({ _id: review.ownerReply });
+                await Reply.deleteOne({ _id: review.ownerReply }).session(session);
             }
 
-            await Review.deleteOne({ reviewer: review_id, cafeName: cafe_id });
+            await Review.deleteOne({ reviewer: review_id, cafeName: cafe_id }).session(session);
+            await session.commitTransaction();
+            session.endSession();
             res.sendStatus(200);
         } catch {
+            await session.abortTransaction();
+            session.endSession();
             res.sendStatus(400)
         }
     },
